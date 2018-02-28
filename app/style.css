@@ -1,0 +1,9 @@
+/* Buttons CSS */
+
+button.primary {
+  background: #4b74ff;
+  border-radius: 24px;
+  padding: 6px 16px;
+  color: white;
+  font-weight: 100;
+}
