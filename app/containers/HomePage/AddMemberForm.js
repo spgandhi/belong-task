@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import localStorageDB from 'localstoragedb';
 import { ModalContainer, ModalDialog } from 'react-modal-dialog';
 
 const styles = {
@@ -21,7 +22,7 @@ const styles = {
     marginBottom: '30px',
   },
   textarea: {
-    height: '80px !important',
+    height: '80px',
     boxShadow: 'inset 0 1px 5px rgba(0, 0, 0, 0.2)',
     border: 'inset 1px #c6cbd4',
   },
@@ -34,56 +35,74 @@ export default class AddTeamMember extends React.PureComponent {
       name: '',
       company: '',
       notes: '',
-      status: '',
+      status: 'active',
       error: '',
     };
-    this.handleClose = this.handleClose.bind(this);
+    this.handleModalClose = this.handleModalClose.bind(this);
     this.handleInputChange = this.handleInputChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
+    this.lib = new localStorageDB('library', localStorage);
   }
 
-  handleClose() {
+  handleModalClose() {
     this.props.onModalClose();
   }
 
   handleInputChange(e) {
-    console.log(e);
     this.setState({ [e.target.name]: e.target.value });
   }
 
   handleSubmit(e) {
     e.preventDefault();
     const { name, company, notes } = this.state;
+
+    // Check for form errors
     let error = '';
     if (!name || name.length < 4) error = 'Name should be atleast 4 characters';
     if (!name || company.length < 2) error = 'Company should be atleast 2 characters';
     this.setState({ error });
     if (error.length > 0) return;
 
-    const teamMember = {
+    const newTeamMember = {
       name,
       company,
       status,
       notes,
+      lastUpdated: new Date(),
     };
 
-    console.log(teamMember);
+    // Database insert
+    this.lib.insert('teamMembers', newTeamMember);
+    this.lib.commit();
+
+    // Post database insert calls
+    this.setState({
+      name: '',
+      company: '',
+      status: 'active',
+      notes: '',
+      lastUpdated: '',
+    });
+    this.props.onDBUpdate(newTeamMember);
+    this.handleModalClose();
   }
 
   render() {
+    const { isAddMemberModal } = this.props;
+    const { name, company, status, notes, error } = this.state;
     return (
       <div>
-        {this.props.isAddMemberModal &&
-          <ModalContainer onClose={this.handleClose}>
+        {isAddMemberModal &&
+          <ModalContainer onClose={this.handleModalClose}>
             {
-              <ModalDialog onClose={this.handleClose} style={styles.modalDialog}>
+              <ModalDialog onClose={this.handleModalClose} style={styles.modalDialog}>
                 <form className="add-memeber-form" style={styles.form}>
                   <div style={styles.labelContainer}>
                     <label>
                       <div className="label">Name</div>
                       <input
                         type="text"
-                        value={this.state.name}
+                        value={name}
                         style={styles.label}
                         onChange={this.handleInputChange}
                         name="name"
@@ -95,7 +114,7 @@ export default class AddTeamMember extends React.PureComponent {
                       <div className="label">Company</div>
                       <input
                         type="text"
-                        value={this.state.company}
+                        value={company}
                         style={styles.label}
                         onChange={this.handleInputChange}
                         name="company"
@@ -110,19 +129,21 @@ export default class AddTeamMember extends React.PureComponent {
                         style={styles.label}
                         name="status"
                         onChange={this.handleInputChange}
+                        value={status}
                       >
-                        <option value="open">Open</option>
-                        <option value="close">Close</option>
+                        <option value="active">Active</option>
+                        <option value="idle">Idle</option>
+                        <option value="closed">Closed</option>
                       </select>
                     </label>
                   </div>
                   <div style={styles.labelContainer}>
                     <label>
-                      <div className="label">Notes</div>
+                      <div>Notes</div>
                       <textarea
-                        value={this.state.notes}
+                        value={notes}
                         style={styles.textarea}
-                        className="full-width"
+                        className="full-width notes-textarea"
                         onChange={this.handleInputChange}
                         name="notes"
                       />
@@ -136,7 +157,7 @@ export default class AddTeamMember extends React.PureComponent {
                       Add Member
                     </button>
                   </div>
-                  {this.state.error}
+                  <div className="error">{error}</div>
                 </form>
               </ModalDialog>
             }

@@ -1,143 +1,102 @@
-/*
- * HomePage
- *
- * This is the first thing users see of our App, at the '/' route
- */
-
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Helmet } from 'react-helmet';
-import TeamMemberRow from './TeamMemberRow';
+import localStorageDB from 'localstoragedb';
 import AddMemberForm from './AddMemberForm';
+import Header from './Header';
+import SecondaryHeader from './SecondaryHeader';
+import TeamMemberListing from './TeamMemberListing';
 
-const styles = {
-  headerTitle: {
-    fontSize: '32px',
-    fontWeight: '900',
-    lineHeight: '1.5',
-    color: '#333',
-    margin: '0 60px',
-  },
-  addMemberBtn: {
-    marginLeft: '20px',
-  },
-  statusSelect: {
-    marginLeft: '5px',
-  },
-  selects: {
-    margin: '0 60px',
-  },
-};
 
 export class HomePage extends React.PureComponent {
 
   constructor(props) {
     super(props);
+
+    this.lib = new localStorageDB('library', localStorage);
+    if (this.lib.isNew()) {
+      // create the "books" table
+      this.lib.createTable('teamMembers', ['name', 'company', 'status', 'lastUpdated', 'notes']);
+      this.lib.commit();
+    }
+
     this.state = {
       isAddMemberModal: false,
+      teamMembers: this.lib.queryAll('teamMembers'),
+      currentPage: 1,
+      currentIndex: 0,
+      sorting: 'none',
     };
-    this.toggleAddMemberModal = this.toggleAddMemberModal.bind(this);
-  }
 
-  componentDidMount() {
+    this.toggleAddMemberModal = this.toggleAddMemberModal.bind(this);
+    this.handleDBUpdate = this.handleDBUpdate.bind(this);
+    this.handleMemberDelete = this.handleMemberDelete.bind(this);
+    this.sortByName = this.sortByName.bind(this);
   }
 
   toggleAddMemberModal() {
     this.setState({ isAddMemberModal: !this.state.isAddMemberModal });
   }
 
+  handleDBUpdate() {
+    const self = this;
+    
+    // Timeout is added to make sure that the local DB has been updated
+    // before querying
+    setTimeout(() => {
+      self.lib = new localStorageDB('library', localStorage);
+      self.setState({ teamMembers: self.lib.queryAll('teamMembers') });
+    }, 1000);
+  }
+
+  handleMemberDelete(ID) {
+    this.lib.deleteRows('teamMembers', { ID });
+    this.lib.commit();
+    this.lib = new localStorageDB('library', localStorage);
+    this.setState({ teamMembers: this.lib.queryAll('teamMembers') });
+  }
+
+  sortByName() {
+    console.log('called');
+    let sorting = '';
+    if (this.state.sorting === 'none') sorting = 'ASC';
+    if (this.state.sorting === 'ASC') sorting = 'DESC';
+    if (this.state.sorting === 'DESC') sorting = 'ASC';
+
+    this.setState({
+      teamMembers: this.lib.queryAll('teamMembers', { sort: [['name', sorting]] }),
+      sorting,
+    });
+  }
+
   render() {
+    const { currentIndex, sorting, teamMembers } = this.state;
     return (
       <article>
         <AddMemberForm
           isAddMemberModal={this.state.isAddMemberModal}
           onModalClose={this.toggleAddMemberModal}
+          onDBUpdate={this.handleDBUpdate}
         />
-        <Helmet>
-          <title>Belong | Task</title>
-          <meta name="description" content="Belong Task on react.js" />
-        </Helmet>
-        <div>
-          <h2 style={styles.headerTitle}>
-            Team Members
-            <button
-              className="primary font-14 vert-middle"
-              style={styles.addMemberBtn}
-              onClick={this.toggleAddMemberModal}
-            >
-              <span>Add Members</span>
-              <i className="material-icons color-white font-14">add</i>
-            </button>
-          </h2>
-
+        <div className="white-bg">
+          <Header onToggleAddMemberModal={this.toggleAddMemberModal} />
           <hr />
-
-          <div style={styles.selects} className="overflow-auto">
-            <div className="pull-left">
-              <select>
-                <option>Company (1)</option>
-                <option>Helo World</option>
-                <option>Cello World</option>
-              </select>
-              <select style={styles.statusSelect}>
-                <option>Status</option>
-                <option>Open</option>
-                <option>CLose</option>
-              </select>
-            </div>
-            <div className="pull-right">
-              Viewing 1 - 20 of 36
-            </div>
-          </div>
-
-          <div className="table">
-            <table className="full-width" border="0" padding="0" cellPadding="0">
-              <thead>
-                <tr className="table-header">
-                  <td style={{ width: '5%' }}></td>
-                  <td style={{ width: '15%' }}>Name</td>
-                  <td style={{ width: '15%' }}>Company</td>
-                  <td style={{ width: '15%' }}>Status</td>
-                  <td style={{ width: '15%' }}>Last Updated</td>
-                  <td style={{ width: '30%' }}>Notes</td>
-                  <td style={{ width: '5%' }}></td>
-                </tr>
-              </thead>
-              <tbody>
-                {teamMembers.map((member) => (
-                  <TeamMemberRow member={member} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SecondaryHeader
+            currentIndex={currentIndex}
+            teamMembersCount={teamMembers.length}
+            totalTeamMembers={teamMembers.length}
+          />
         </div>
+        <TeamMemberListing
+          teamMembers={this.state.teamMembers}
+          currentIndex={currentIndex}
+          sorting={sorting}
+          onMemberDelete={this.handleMemberDelete}
+          onToggleAddMemberModal={this.toggleAddMemberModal}
+          onSortByName={this.sortByName}
+        />
       </article>
     );
   }
 }
-
-const teamMembers = [
-  {
-    name: 'Shreyans',
-    company: 'Aerobubble',
-    status: 'open',
-    lastUpdated: '12:37 PM',
-    notes: 'Good!',
-  },
-  {
-    name: 'Rish',
-    company: 'Aerobubble',
-    status: 'open',
-    lastUpdated: '12:37 PM',
-    notes: 'Good!',
-  },
-  {
-    name: 'Shreyans',
-    company: 'Aerobubble',
-    status: 'open',
-    lastUpdated: '12:37 PM',
-    notes: 'Good!',
-  },
-];
 
 export default HomePage;
