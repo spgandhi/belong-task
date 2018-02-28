@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {ModalContainer, ModalDialog} from 'react-modal-dialog';
 
-export class TeamMemberRow extends React.PureComponent {
+export default class TeamMemberRow extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

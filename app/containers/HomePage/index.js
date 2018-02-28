@@ -7,7 +7,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Helmet } from 'react-helmet';
-import { TeamMemberRow } from './TeamMemberRow';
+import TeamMemberRow from './TeamMemberRow';
+import AddMemberForm from './AddMemberForm';
 
 const styles = {
   headerTitle: {
@@ -28,16 +29,30 @@ const styles = {
   },
 };
 
-export class HomePage extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
-  /**
-   * when initial state username is not null, submit the form to load repos
-   */
+export class HomePage extends React.PureComponent {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      isAddMemberModal: false,
+    };
+    this.toggleAddMemberModal = this.toggleAddMemberModal.bind(this);
+  }
+
   componentDidMount() {
+  }
+
+  toggleAddMemberModal() {
+    this.setState({ isAddMemberModal: !this.state.isAddMemberModal });
   }
 
   render() {
     return (
       <article>
+        <AddMemberForm
+          isAddMemberModal={this.state.isAddMemberModal}
+          onModalClose={this.toggleAddMemberModal}
+        />
         <Helmet>
           <title>Belong | Task</title>
           <meta name="description" content="Belong Task on react.js" />
@@ -48,6 +63,7 @@ export class HomePage extends React.PureComponent { // eslint-disable-line react
             <button
               className="primary font-14 vert-middle"
               style={styles.addMemberBtn}
+              onClick={this.toggleAddMemberModal}
             >
               <span>Add Members</span>
               <i className="material-icons color-white font-14">add</i>
